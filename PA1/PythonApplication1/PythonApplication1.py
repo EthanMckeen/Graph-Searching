@@ -85,7 +85,7 @@ def findPath(goal, parent):
 def pathCost(path, tree):
 	sum=0;
 	for i in range(0, len(path)-1):
-		sum+= getCost(path[i], path[i+1], tree) #does get costCost for a node and the nextnode in the path
+		sum+= getCost(path[i], path[i+1], tree) #does recursively get costCost for a node and the nextnode in the path
 	return sum	# int total cost of a given path
 
 
@@ -157,15 +157,52 @@ def doUCF(start, goal, tree):
 			if node not in explored: #checks hey have i been explored
 				if node in uCost: #do i have an existing cost
 					temp = uCost.get(explored[-1]) + getCost(explored[-1], node, tree) #calc this pathing cost
-					if temp < uCost.get(node): # if new < old update parent and cos
-						parent[node] = explored[-1] #updates parent if cheaper
-						uCost[node] = temp
+					if temp < uCost.get(node): # if new < old update parent and cost
+						parent.update({node: explored[-1]}) #updates parent if cheaper
+						uCost.update({node: temp}) #update cost
 				else:
 					parent[node] = explored[-1] #sets parent of node
 					uCost[node] = uCost.get(parent.get(node)) + getCost(parent.get(node), node, tree)
-				fPriorityQ.append(node)		#adds node to frontier Priority Q
+					fPriorityQ.append(node)		#adds node to frontier Priority Q
 
-		fPriorityQ.sort(key=uCost.get)
+		fPriorityQ.sort(key=uCost.get) #sort Priorityq by uCost meaning fPriorityQ[0]<fPriorityQ[1]<fPriorityQ[2]
+
+		
+	return [parent, uCost.get(goal)]  #returns a dict to find path 
+
+
+def doAstar(start, goal, tree, hCost):
+	explored = ['null']
+	fPriorityQ = [start] 
+	found = []
+	parent = { start : 'null'}
+	uCost = { 'S' : 0}
+	aCost={'S': uCost.get('S') + hCost.get('S')} # f(p)= c(p) + h(p)
+	temp = 0
+
+	while explored[-1] != goal:
+		#print(fPriorityQ) #to see if the fPriorityQ is correct
+		explored.append(fPriorityQ[0]) #grabs first item in queue and puts it into explored to be explored
+		fPriorityQ.pop(0)			   #removes first item in queue
+		if explored[-1] == goal:
+			break				#stops if goal is found
+
+		found = getEdges(explored[-1], tree) #finds edges of the node being explored
+
+		for node in found:	
+			if node not in explored: #checks hey have i been explored
+				if node in uCost: #do i have an existing cost
+					temp = uCost.get(explored[-1]) + getCost(explored[-1], node, tree) #calc the current pathing cost
+					if temp < uCost.get(node): # if current < existing cost update parent and cost
+						parent.update({node: explored[-1]}) #updates parent if cheaper
+						uCost.update({node: temp}) #update cost
+				else:
+					parent[node] = explored[-1] #sets parent of node
+					uCost[node] = uCost.get(parent.get(node)) + getCost(parent.get(node), node, tree) #set uCost
+					fPriorityQ.append(node)		#adds node to frontier Priority Q
+				aCost[node]= uCost.get(node) + hCost.get(node)
+
+		fPriorityQ.sort(key=aCost.get) #sort Priorityq by aCost meaning fPriorityQ[0]<fPriorityQ[1]<fPriorityQ[2] etc etc
 
 		
 	return [parent, uCost.get(goal)]  #returns a dict to find path 
@@ -247,4 +284,25 @@ for node in ucfPath:
 	if node != 'G':
 		temp+= ' -> '
 print('\tUCF Path: ', temp)	#temp is path with pointers
+print('\tExecution: ',t/trials)	#calc time for ten runs / ten to find avg run time
+
+#A*
+t = 0
+temp = ''
+astarInfo= doAstar('S', 'G', tree, hCost)
+astarParent = astarInfo[0]
+astarCost= astarInfo[1]
+astarPath = findPath('G', astarParent)
+
+t = timeit.timeit(lambda: doAstar('S', 'G', tree, hCost), number=trials) #finds time it took to run Astar and assign parents and find unified costs 10 times
+t += timeit.timeit(lambda: findPath('G', astarParent), number=trials) #adds time it takes to find path from parent 10 times
+
+print('Algorithm: A* ')
+print('\tPath Cost: ', astarCost)
+#create a string detailing path
+for node in astarPath:
+	temp+= node
+	if node != 'G':
+		temp+= ' -> '
+print('\tA* Path: ', temp)	#temp is path with pointers
 print('\tExecution: ',t/trials)	#calc time for ten runs / ten to find avg run time
