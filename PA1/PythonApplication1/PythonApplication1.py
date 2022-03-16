@@ -30,13 +30,13 @@ import timeit
 
 
 #creating graph is sorted by cost
-tree = {'S': [ ['C', 1] , ['B', 2], ['D', 10] ],
-		 'B': [ ['S', 2] , ['E', 7] ],
-		 'C': [ ['S', 1] , ['G', 15] ],
-		 'D': [ ['S', 10] ],
-		 'E': [ ['F', 1] , ['B', 7] , ['G', 2] ],
-		 'F': [ ['E', 1] , ['G', 3] ],
-		 'G': [ ['E', 2] , ['F', 3] , ['C', 15] ]}
+tree = {'S': [ ['S', 0] , ['C', 1] , ['B', 2], ['D', 10] ],
+		'B': [ ['B', 0] , ['S', 2] , ['E', 7] ],
+		'C': [ ['C', 0] , ['S', 1] , ['G', 15] ],
+		'D': [ ['D', 0] , ['S', 10] ],
+		'E': [ ['E', 0] , ['F', 1] , ['B', 7] , ['G', 2] ],
+		'F': [ ['F', 0] , ['E', 1] , ['G', 3] ],
+		'G': [ ['G', 0] , ['E', 2] , ['F', 3] , ['C', 15] ]}
 
 hCost = {'S': 9,
 		 'B': 7,
@@ -136,6 +136,50 @@ def doDFS(start, goal, tree):
 	return parent
 		
 		
+def doUCF(start, goal, tree):
+	explored = ['null']
+	fPriorityQ = [start] 
+	found = []
+	parent = { start : 'null'}
+	uCost = { 'S' : 0}
+	temp = 0
+
+	while explored[-1] != goal:
+		#print(fPriorityQ) #to see if the fPriorityQ is correct
+		explored.append(fPriorityQ[0]) #grabs first item in queue and puts it into explored to be explored
+		fPriorityQ.pop(0)			   #removes first item in queue
+		if explored[-1] == goal:
+			break				#stops if goal is found
+
+		found = getEdges(explored[-1], tree) #finds edges of the node being explored
+
+		for node in found:	
+			if node not in explored: #checks hey have i been explored
+				if node in uCost: #do i have an existing cost
+					temp = uCost.get(explored[-1]) + getCost(explored[-1], node, tree) #calc this pathing cost
+					if temp < uCost.get(node): # if new < old update parent and cos
+						parent[node] = explored[-1] #updates parent if cheaper
+						uCost[node] = temp
+				else:
+					parent[node] = explored[-1] #sets parent of node
+					uCost[node] = uCost.get(parent.get(node)) + getCost(parent.get(node), node, tree)
+				fPriorityQ.append(node)		#adds node to frontier Priority Q
+
+		fPriorityQ.sort(key=uCost.get)
+
+		
+	return [parent, uCost.get(goal)]  #returns a dict to find path 
+
+
+
+
+
+
+
+
+
+
+
 
 
 #Driver Code (ithink this is what below is called but idk im new to this)
@@ -145,6 +189,7 @@ t = 0
 temp = ''
 bfsParent = doBFS('S', 'G', tree)
 bfsPath = findPath('G', bfsParent)
+bfsCost = pathCost(bfsPath, tree)
 
 t = timeit.timeit(lambda: doBFS('S', 'G', tree), number=trials)	#finds time it took to run BFS and Assign parents to explored nodes 10 times
 t += timeit.timeit(lambda: findPath('G', bfsParent), number=trials)	#adds the time it takes to find the actual path from the dict of assigned parrents 10 times
@@ -152,7 +197,7 @@ t += timeit.timeit(lambda: pathCost(bfsPath, tree), number=trials) #adds time it
 
 
 print('Algorithm: BFS ')
-print('\tPath Cost: ', pathCost(bfsPath, tree))
+print('\tPath Cost: ', bfsCost)
 #create a string detailing path
 for node in bfsPath:
 	temp+= node
@@ -166,6 +211,7 @@ t = 0
 temp = ''
 dfsParent = doDFS('S', 'G', tree)
 dfsPath = findPath('G', dfsParent)
+dfsCost = pathCost(dfsPath, tree)
 
 t = timeit.timeit(lambda: doDFS('S', 'G', tree), number=trials)	#finds time it took to run DFS and Assign parents to explored nodes 10 times
 t += timeit.timeit(lambda: findPath('G', dfsParent), number=trials)	#adds the time it takes to find the actual path from the dict of assigned parrents 10 times
@@ -173,11 +219,32 @@ t += timeit.timeit(lambda: pathCost(dfsPath, tree), number=trials) #adds time it
 
 
 print('Algorithm: DFS ')
-print('\tPath Cost: ', pathCost(dfsPath, tree))
+print('\tPath Cost: ', dfsCost)
 #create a string detailing path
 for node in dfsPath:
 	temp+= node
 	if node != 'G':
 		temp+= ' -> '
 print('\tDFS Path: ', temp)	#temp is path with pointers
+print('\tExecution: ',t/trials)	#calc time for ten runs / ten to find avg run time
+
+#UCF
+t = 0
+temp = ''
+ucfInfo = doUCF('S', 'G', tree)
+ucfParent = ucfInfo[0]
+ucfCost = ucfInfo[1]
+ucfPath = findPath('G', ucfParent)
+
+t = timeit.timeit(lambda: doUCF('S', 'G', tree), number=trials) #finds time it took to run UCF and assign parents and find unified costs 10 times
+t += timeit.timeit(lambda: findPath('G', ucfParent), number=trials) #adds time it takes to find path from parent 10 times
+
+print('Algorithm: UCF ')
+print('\tPath Cost: ', ucfCost)
+#create a string detailing path
+for node in ucfPath:
+	temp+= node
+	if node != 'G':
+		temp+= ' -> '
+print('\tUCF Path: ', temp)	#temp is path with pointers
 print('\tExecution: ',t/trials)	#calc time for ten runs / ten to find avg run time
