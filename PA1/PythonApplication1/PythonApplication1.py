@@ -219,7 +219,7 @@ def doAstar(start, goal, tree, hCost):
 
 
 
-#Driver Code (ithink this is what below is called but idk im new to this)
+#Driver Code 
 trials = 10
 #BFS
 t = 0
